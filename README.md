@@ -9,6 +9,35 @@
 
 提示音由浏览器内的 Web Audio 实时合成，不依赖任何音频文件（也可另选本机音频）。
 
+## 桌面应用
+
+桌面版使用 Tauri 封装同一套前端代码，关闭窗口后会驻留系统托盘，闹钟和倒计时继续运行。
+
+| 命令 | 用途 |
+|---|---|
+| `npm ci` | 按锁文件安装 Tauri 与 Vite 工具链 |
+| `npm run desktop:dev` | 启动桌面开发版 |
+| `npm run desktop:build` | 构建 Windows 安装包 |
+
+安装包输出到 `src-tauri/target/release/bundle/nsis/`。
+
+### 构建环境
+
+在另一台 Windows x64 电脑上构建，需要预先安装：
+
+1. Node.js 22 或更高版本。
+2. Rust stable 工具链，使用 `rustup` 安装。
+3. Visual Studio 2022 Build Tools，并勾选“使用 C++ 的桌面开发”工作负载。
+
+然后执行：
+
+```powershell
+npm ci
+npm run desktop:build
+```
+
+项目已提交 `package-lock.json` 和 `Cargo.lock`，不同电脑会安装相同的依赖版本。也可以直接在 GitHub Actions 中运行 `Build Windows Desktop Installer`，从构建产物下载安装包。
+
 ## 项目结构
 
 | 目录 | 职责 |
