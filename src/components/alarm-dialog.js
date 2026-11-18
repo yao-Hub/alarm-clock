@@ -8,6 +8,7 @@ import {
   saveState,
   state
 } from '../core/store.js';
+import { requestNotificationPermission } from '../core/notifications.js';
 import { qs, qsa } from '../utils/dom.js';
 import { DAY_NAMES, pad } from '../utils/time.js';
 import { showToast } from './toast.js';
@@ -107,18 +108,11 @@ export function createAlarmDialog({ onSaved }) {
   }
 
   function maybeAskNotificationPermission() {
-    if (!('Notification' in window)) return;
-    if (Notification.permission !== 'default') return;
     if (state.notifyAsked) return;
 
     markNotificationAsked();
     saveState();
-    try {
-      const request = Notification.requestPermission();
-      if (request?.then) request.then(() => {}, () => {});
-    } catch {
-      // Embedded browsers can expose Notification while rejecting the permission request.
-    }
+    void requestNotificationPermission();
   }
 
   function bindEvents() {

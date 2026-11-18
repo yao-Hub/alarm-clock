@@ -7,6 +7,7 @@ import {
   playCustomAudio,
   playSound
 } from '../core/audio.js';
+import { sendAlarmNotification } from '../core/notifications.js';
 import { qs } from '../utils/dom.js';
 import { showToast } from './toast.js';
 
@@ -123,12 +124,8 @@ export function createRingOverlay() {
 }
 
 function showSystemNotification(info) {
-  try {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
-    new Notification('时刻 · 闹钟', {
-      body: `${info.label || '时间到'} ${info.timeText || ''}`.trim()
-    });
-  } catch {
-    // Some browsers require a service worker before allowing notifications.
-  }
+  void sendAlarmNotification({
+    title: '时刻 · 闹钟',
+    body: `${info.label || '时间到'} ${info.timeText || ''}`.trim()
+  });
 }
