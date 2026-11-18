@@ -54,6 +54,9 @@ body::before{
 /* ---------- 视图 ---------- */
 .view{display:none;grid-template-columns:minmax(0,1.06fr) minmax(0,.94fr);gap:52px;align-items:start;padding-top:40px}
 .view[data-active="true"]{display:grid}
+@media (min-width:921px){
+  .wrap{padding-bottom:clamp(84px,calc(100vh - 720px),140px)}
+}
 @media (max-width:920px){.view{grid-template-columns:minmax(0,1fr);gap:34px;padding-top:26px}}
 
 /* ---------- 表盘 ---------- */
@@ -79,6 +82,9 @@ body::before{
 .center-pin{fill:var(--brass-2)}
 .center-ring{fill:none;stroke:var(--brass);stroke-width:1.2;opacity:.7}
 .progress-arc{fill:none;stroke:var(--brass);stroke-width:3;opacity:.9;stroke-linecap:round}
+@media (min-width:921px){
+  .dial-wrap{width:min(470px,max(300px,calc(100vh - 455px)))}
+}
 
 /* ---------- 读数 ---------- */
 .readout{margin-top:8px;text-align:center}
