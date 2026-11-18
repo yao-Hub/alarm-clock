@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>时刻 · 闹钟与倒计时</title>
+<link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="29" fill="%230d1a16" stroke="%23c8a45c" stroke-width="4"/><path d="M32 15v17l12 8" stroke="%23e8cf9a" stroke-width="4" fill="none" stroke-linecap="round"/></svg>'>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500;6..96,600&amp;family=Noto+Serif+SC:wght@300;400;600&amp;display=swap">
+<style>
+:root{
+  --ink:#08100e;
+  --ink-2:#0d1a16;
+  --panel:#0f1d18;
+  --line:rgba(200,164,92,.22);
+  --line-soft:rgba(200,164,92,.10);
+  --brass:#c8a45c;
+  --brass-2:#e8cf9a;
+  --brass-dim:rgba(200,164,92,.55);
+  --paper:#efe9db;
+  --dim:rgba(239,233,219,.52);
+  --dim-2:rgba(239,233,219,.34);
+  --clay:#c8745c;
+  --num-font:"Bodoni Moda","Noto Serif SC",Georgia,"Times New Roman",serif;
+  --cjk:"Noto Serif SC","Songti SC","SimSun",serif;
+}
+*{box-sizing:border-box}
+html{min-height:100%}
+body{
+  margin:0;min-height:100vh;
+  background:
+    radial-gradient(120% 90% at 50% -10%,#14251f 0%,#0b1613 46%,#07100d 100%),
+    var(--ink);
+  color:var(--paper);
+  font-family:var(--cjk);
+  font-weight:300;
+  -webkit-font-smoothing:antialiased;
+  letter-spacing:.01em;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:repeating-linear-gradient(90deg,rgba(200,164,92,.045) 0 1px,transparent 1px 7px);
+  opacity:.5;
+  mask-image:radial-gradient(80% 70% at 50% 40%,#000 20%,transparent 100%);
+}
+.wrap{position:relative;z-index:1;max-width:1220px;margin:0 auto;padding:0 34px 140px}
+
+/* ---------- 顶栏 ---------- */
+.topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:32px 2px 22px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{width:30px;height:30px;flex:none}
+.brand-name{font-family:var(--cjk);font-size:21px;font-weight:400;letter-spacing:.22em;line-height:1}
+.brand-sub{font-family:var(--num-font);font-size:11px;letter-spacing:.34em;color:var(--brass-dim);text-transform:uppercase;padding-bottom:2px;border-left:1px solid var(--line);padding-left:12px}
+.tabs{display:flex;gap:6px}
+.tab{
+  appearance:none;background:none;border:0;border-bottom:1px solid transparent;
+  color:var(--dim);font-family:var(--cjk);font-size:15px;letter-spacing:.14em;
+  padding:8px 4px 7px;margin-left:24px;cursor:pointer;transition:color .2s,border-color .2s;
+}
+.tab[aria-selected="true"]{color:var(--paper);border-bottom-color:var(--brass)}
+.tab:hover{color:var(--paper)}
+.tab:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--brass);outline-offset:3px}
+
+/* ---------- 视图 ---------- */
+.view{display:none;grid-template-columns:minmax(0,1.06fr) minmax(0,.94fr);gap:52px;align-items:start;padding-top:40px}
+.view[data-active="true"]{display:grid}
+@media (max-width:920px){.view{grid-template-columns:minmax(0,1fr);gap:34px;padding-top:26px}}
+
+/* ---------- 表盘 ---------- */
+.stage{min-width:0}
+.dial-wrap{position:relative;width:100%;max-width:470px;margin:0 auto;aspect-ratio:1/1}
+.dial-svg{width:100%;height:100%;display:block}
+.bezel-outer{fill:none;stroke:var(--brass);stroke-width:1.1;opacity:.85}
+.bezel-mid{fill:none;stroke:var(--brass);stroke-width:.5;opacity:.35}
+.dial-face{fill:none;stroke:rgba(200,164,92,.14);stroke-width:.75}
+.tick{stroke:var(--brass);opacity:.5}
+.tick-major{stroke:var(--brass-2);opacity:.85}
+.numeral{fill:var(--paper);opacity:.8;font-family:var(--num-font);font-size:19px;font-weight:400}
+.numeral-minor{fill:var(--paper);opacity:.52;font-family:var(--num-font);font-size:14px}
+.dial-brand{fill:var(--brass-dim);font-family:var(--cjk);font-size:15px;letter-spacing:.34em;text-anchor:middle}
+.dial-caption{fill:var(--dim-2);font-family:var(--cjk);font-size:10.5px;letter-spacing:.22em;text-anchor:middle}
+.hand{stroke:var(--brass-2);stroke-linecap:round}
+.hand-hour{stroke-width:4.2;opacity:.95}
+.hand-minute{stroke-width:2.6;opacity:.95}
+.hand-second{stroke:var(--clay);stroke-width:1.4;opacity:.9}
+.hand-shadow{stroke:rgba(0,0,0,.45);stroke-width:6;opacity:.55}
+.center-pin{fill:var(--brass-2)}
+.center-ring{fill:none;stroke:var(--brass);stroke-width:1.2;opacity:.7}
+.progress-arc{fill:none;stroke:var(--brass);stroke-width:3;opacity:.9;stroke-linecap:round}
+
+/* ---------- 读数 ---------- */
+.readout{margin-top:8px;text-align:center}
+.readout-time{font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:clamp(42px,7vw,72px);line-height:1.02;letter-spacing:.02em;font-weight:500;display:flex;align-items:baseline;justify-content:center;gap:2px}
+.readout-time .sec{font-size:.42em;color:var(--brass);letter-spacing:.06em;margin-left:8px;font-weight:400}
+.readout-meta{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px;color:var(--dim);font-size:12.5px;letter-spacing:.16em}
+.readout-meta .dot{width:3px;height:3px;border-radius:50%;background:var(--brass-dim)}
+.next-line{margin-top:18px;text-align:center;font-size:13px;color:var(--dim);letter-spacing:.1em;line-height:1.9}
+.next-line strong{color:var(--brass-2);font-family:var(--num-font);font-size:16px;letter-spacing:.04em;font-weight:500}
+.next-line .quiet{color:var(--dim-2)}
+
+/* ---------- 侧栏 ---------- */
+.panel{min-width:0;background:linear-gradient(180deg,rgba(200,164,92,.035),rgba(200,164,92,0) 42%);border-top:1px solid var(--line);padding-top:22px}
+.panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px}
+.panel-title{font-size:15px;letter-spacing:.2em;color:var(--paper);margin:0;font-weight:400}
+.btn{
+  appearance:none;cursor:pointer;font-family:var(--cjk);font-size:13px;letter-spacing:.1em;
+  border:1px solid var(--line);background:transparent;color:var(--paper);
+  padding:8px 16px;border-radius:2px;transition:background .18s,border-color .18s,color .18s;
+}
+.btn:hover{border-color:var(--brass);color:var(--brass-2);background:rgba(200,164,92,.07)}
+.btn-solid{background:var(--brass);border-color:var(--brass);color:#0a1411;font-weight:400}
+.btn-solid:hover{background:var(--brass-2);border-color:var(--brass-2);color:#0a1411}
+.btn-quiet{border-color:transparent;color:var(--dim);padding:8px 8px}
+.btn-quiet:hover{color:var(--paper);background:none}
+
+/* 闹钟列表 */
+.alarm-list{list-style:none;margin:0;padding:0}
+.alarm{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;
+  padding:17px 2px;border-bottom:1px solid var(--line-soft);
+}
+.alarm.is-off{opacity:.44}
+.alarm-body{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:center;min-width:0}
+.switch{
+  appearance:none;cursor:pointer;width:34px;height:16px;border:1px solid var(--brass-dim);background:transparent;
+  border-radius:0;position:relative;padding:0;flex:none;transition:background .18s,border-color .18s;
+}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;background:var(--dim);transition:transform .18s,background .18s}
+.switch[aria-checked="true"]::after{transform:translateX(18px);background:var(--brass-2)}
+.switch[aria-checked="true"]{border-color:var(--brass);background:rgba(200,164,92,.12)}
+.alarm-time{font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:30px;line-height:1;letter-spacing:.03em;color:var(--paper);font-weight:500;min-width:0}
+.alarm-meta{margin-top:6px;font-size:12px;color:var(--dim);letter-spacing:.08em;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.alarm-meta .sep{color:var(--dim-2)}
+.alarm-meta .sound{color:var(--brass-dim)}
+.alarm-actions{display:flex;gap:2px;opacity:0;transition:opacity .18s}
+.alarm:hover .alarm-actions,.alarm:focus-within .alarm-actions{opacity:1}
+.alarm-actions button{font-size:11.5px;padding:6px 8px;color:var(--dim);border:0;background:none;cursor:pointer;letter-spacing:.08em;font-family:var(--cjk)}
+.alarm-actions button:hover{color:var(--brass-2)}
+@media (hover:none){.alarm-actions{opacity:1}}
+.empty{padding:34px 4px 30px;color:var(--dim);font-size:13px;line-height:2;letter-spacing:.08em;border-bottom:1px solid var(--line-soft)}
+.empty span{display:block;color:var(--dim-2);font-size:11.5px;margin-top:6px}
+.templates{margin-top:24px;border-top:1px solid var(--line-soft);padding-top:18px}
+.tpl-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tpl{
+  appearance:none;cursor:pointer;text-align:left;background:transparent;border:1px solid var(--line-soft);
+  border-radius:2px;padding:12px 13px;transition:border-color .18s,background .18s;
+}
+.tpl:hover{border-color:var(--brass);background:rgba(200,164,92,.06)}
+.tpl span{display:block;font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:20px;color:var(--paper);letter-spacing:.02em;line-height:1}
+.tpl em{display:block;margin-top:7px;font-style:normal;font-size:10.5px;color:var(--dim);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:600px){.tpl-row{grid-template-columns:minmax(0,1fr)}}
+.hist{list-style:none;margin:10px 0 0;padding:0}
+.hist li{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line-soft);font-size:11.5px;color:var(--dim);letter-spacing:.06em}
+.hist li strong{font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:17px;font-weight:500;color:var(--paper);letter-spacing:.03em}
+.hist .hist-empty{color:var(--dim-2);justify-content:flex-start;border-bottom:0}
+
+/* 倒计时控制 */
+.timer-form{margin-top:6px}
+.field-label{font-size:11.5px;letter-spacing:.2em;color:var(--dim);margin-bottom:10px}
+.time-inputs{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:6px}
+.time-input{
+  width:100%;min-width:0;background:transparent;border:1px solid var(--line);border-radius:2px;
+  color:var(--paper);font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:24px;
+  text-align:center;padding:9px 4px;letter-spacing:.04em;
+}
+.time-input:focus{outline:none;border-color:var(--brass);background:rgba(200,164,92,.06)}
+.time-input::-webkit-outer-spin-button,.time-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.time-input[type=number]{-moz-appearance:textfield}
+.colon{color:var(--dim-2);font-family:var(--num-font);font-size:18px}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.preset{border-color:var(--line-soft);font-size:11.5px;padding:6px 11px;color:var(--dim);letter-spacing:.06em}
+.preset:hover{border-color:var(--brass);color:var(--brass-2)}
+.timer-actions{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.timer-actions .btn{flex:1 1 auto;text-align:center;min-width:96px;padding:11px 14px;font-size:13.5px}
+.timer-state{margin-top:16px;font-size:12px;color:var(--dim);letter-spacing:.12em;display:flex;justify-content:center;align-items:center;gap:8px}
+.timer-state .lamp{width:6px;height:6px;background:var(--dim-2);border-radius:50%;transition:background .3s,box-shadow .3s}
+.timer-state.is-running .lamp{background:var(--brass-2);box-shadow:0 0 10px rgba(232,207,154,.65)}
+.timer-state.is-done .lamp{background:var(--clay)}
+
+/* ---------- 提示音 ---------- */
+.soundbar{
+  position:sticky;bottom:0;z-index:20;
+  margin-top:12px;border-top:1px solid var(--line);
+  background:rgba(8,16,14,.88);backdrop-filter:blur(14px);
+}
+.soundbar-inner{max-width:1220px;margin:0 auto;padding:15px 34px 16px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.soundbar-label{font-size:11.5px;letter-spacing:.24em;color:var(--dim);flex:none}
+.sound-chips{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
+.chip{
+  appearance:none;cursor:pointer;background:transparent;border:1px solid var(--line-soft);
+  color:var(--dim);font-family:var(--cjk);font-size:12px;letter-spacing:.06em;padding:7px 12px;border-radius:2px;
+  transition:border-color .18s,color .18s,background .18s;
+}
+.chip:hover{color:var(--paper);border-color:var(--brass-dim)}
+.chip[aria-pressed="true"]{border-color:var(--brass);color:var(--brass-2);background:rgba(200,164,92,.1)}
+.soundbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.preview-btn{font-size:12px;padding:7px 14px;border-color:var(--line);letter-spacing:.1em}
+.vol-wrap{display:flex;align-items:center;gap:8px}
+.vol-wrap svg{width:15px;height:15px;opacity:.5;flex:none}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:96px;height:2px;background:var(--line);outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;background:var(--brass);border-radius:50%;border:0}
+input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--brass);border-radius:50%;border:0}
+
+/* ---------- 弹窗 ---------- */
+.scrim{position:fixed;inset:0;z-index:60;background:rgba(4,9,8,.72);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:20px}
+.scrim.is-open{display:flex}
+.dialog{
+  width:min(520px,100%);max-height:88vh;overflow:auto;
+  background:linear-gradient(165deg,#122019,#0c1512 60%);
+  border:1px solid var(--line);border-radius:3px;padding:26px 26px 22px;
+  box-shadow:0 30px 70px rgba(0,0,0,.5);
+  animation:rise .22s ease-out;
+}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.dialog-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:22px}
+.dialog-title{font-size:16px;letter-spacing:.2em;margin:0;font-weight:400}
+.close-x{appearance:none;background:none;border:0;color:var(--dim);font-size:22px;line-height:1;cursor:pointer;padding:0 2px;font-family:var(--num-font)}
+.close-x:hover{color:var(--brass-2)}
+.dlg-label{display:block;font-size:11.5px;letter-spacing:.2em;color:var(--dim);margin:0 0 8px}
+.dlg-input{
+  width:100%;background:transparent;border:1px solid var(--line);border-radius:2px;color:var(--paper);
+  font-family:var(--cjk);font-size:15px;padding:10px 12px;letter-spacing:.04em;
+}
+.dlg-input:focus{outline:none;border-color:var(--brass);background:rgba(200,164,92,.05)}
+.time-big{
+  width:100%;background:transparent;border:1px solid var(--line);border-radius:2px;color:var(--paper);
+  font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:34px;text-align:center;padding:6px 8px;letter-spacing:.06em;
+}
+.time-big:focus{outline:none;border-color:var(--brass);background:rgba(200,164,92,.05)}
+.day-row{display:flex;gap:5px;flex-wrap:wrap}
+.day{
+  appearance:none;cursor:pointer;width:36px;height:34px;border:1px solid var(--line-soft);background:transparent;
+  color:var(--dim);font-family:var(--cjk);font-size:12px;border-radius:2px;transition:.18s;
+}
+.day[aria-pressed="true"]{border-color:var(--brass);color:var(--brass-2);background:rgba(200,164,92,.12)}
+.day:hover{border-color:var(--brass-dim);color:var(--paper)}
+.quick-days{display:flex;gap:14px;margin-top:10px}
+.quick-days button{background:none;border:0;color:var(--brass-dim);font-size:11px;letter-spacing:.08em;cursor:pointer;padding:0;font-family:var(--cjk);border-bottom:1px solid transparent}
+.quick-days button:hover{color:var(--brass-2);border-bottom-color:var(--brass-dim)}
+.dlg-sounds{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.snd{
+  appearance:none;cursor:pointer;text-align:left;background:transparent;border:1px solid var(--line-soft);
+  border-radius:2px;padding:10px 12px;color:var(--paper);font-family:var(--cjk);transition:.18s;
+}
+.snd:hover{border-color:var(--brass-dim);background:rgba(200,164,92,.05)}
+.snd[aria-pressed="true"]{border-color:var(--brass);background:rgba(200,164,92,.1)}
+.snd strong{display:block;font-size:13px;font-weight:400;letter-spacing:.06em;color:var(--paper)}
+.snd span{display:block;margin-top:4px;font-size:10.5px;color:var(--dim);letter-spacing:.04em}
+.dialog-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:26px}
+.dialog-foot .btn{padding:10px 22px}
+.dlg-hint{font-size:11px;color:var(--dim-2);letter-spacing:.06em;line-height:1.7;margin-top:14px}
+
+/* ---------- 响铃覆盖层 ---------- */
+.ring{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:24px;
+  background:radial-gradient(circle at 50% 45%,rgba(24,44,36,.94),rgba(5,10,9,.97));backdrop-filter:blur(8px)}
+.ring.is-open{display:flex}
+.ring-card{width:min(460px,100%);text-align:center;position:relative}
+.ring-ring{position:absolute;inset:auto;top:50%;left:50%;width:340px;height:340px;margin:-170px 0 0 -170px;border-radius:50%;
+  border:1px solid rgba(200,164,92,.35);animation:pulse 2.6s ease-out infinite;pointer-events:none}
+.ring-ring.delay{animation-delay:1.3s}
+@keyframes pulse{0%{transform:scale(.72);opacity:.65}70%{opacity:0}100%{transform:scale(1.25);opacity:0}}
+.ring-kicker{font-size:11.5px;letter-spacing:.4em;color:var(--brass);margin-bottom:20px}
+.ring-time{font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:clamp(56px,13vw,92px);line-height:1;font-weight:500;letter-spacing:.03em}
+.ring-label{margin-top:14px;font-size:15px;letter-spacing:.16em;color:var(--paper);opacity:.9}
+.ring-sub{margin-top:8px;font-size:11.5px;letter-spacing:.14em;color:var(--dim)}
+.ring-actions{display:flex;gap:10px;justify-content:center;margin-top:36px;flex-wrap:wrap}
+.ring-actions .btn{padding:13px 26px;font-size:14px;letter-spacing:.14em}
+.btn-snooze{border-color:var(--brass-dim);color:var(--brass-2)}
+
+/* ---------- toast ---------- */
+.toast{position:fixed;left:50%;bottom:96px;transform:translate(-50%,14px);z-index:90;
+  background:rgba(18,32,25,.96);border:1px solid var(--line);color:var(--paper);font-size:12.5px;letter-spacing:.08em;
+  padding:10px 18px;border-radius:2px;opacity:0;pointer-events:none;transition:opacity .22s,transform .22s}
+.toast.is-on{opacity:1;transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion:reduce){
+  .dialog,.ring-ring{animation:none}
+  *{transition-duration:.01ms !important}
+}
+@media (max-width:600px){
+  .wrap{padding:0 18px 220px}
+  .topbar{padding-top:22px}
+  .brand-sub{display:none}
+  .tab{margin-left:16px;font-size:13.5px}
+  .soundbar-inner{padding:12px 18px 14px;gap:12px}
+  .sound-chips{gap:5px}
+  .soundbar-right{margin-left:0;width:100%;justify-content:space-between}
+  .dial-wrap{max-width:340px}
+  .alarm-actions{opacity:1}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<!-- ===== 顶栏 ===== -->
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="29" fill="none" stroke="#c8a45c" stroke-width="1.6" opacity=".9"/>
+      <circle cx="32" cy="32" r="23" fill="none" stroke="#c8a45c" stroke-width=".7" opacity=".35"/>
+      <path d="M32 14v18l12 8" stroke="#e8cf9a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <circle cx="32" cy="32" r="1.8" fill="#e8cf9a"/>
+    </svg>
+    <span class="brand-name">时刻</span>
+    <span class="brand-sub">Shike · Bell &amp; Timer</span>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="视图切换">
+    <button class="tab" role="tab" data-view="alarm" aria-selected="true">闹钟</button>
+    <button class="tab" role="tab" data-view="timer" aria-selected="false">倒计时</button>
+  </nav>
+</header>
+
+<!-- ===== 视图：闹钟 ===== -->
+<section class="view" id="view-alarm" data-active="true" role="tabpanel" aria-label="闹钟">
+  <div class="stage">
+    <div class="dial-wrap">
+      <svg class="dial-svg" viewBox="0 0 400 400" role="img" aria-label="当前时间表盘">
+        <circle class="bezel-outer" cx="200" cy="200" r="196"/>
+        <circle class="bezel-mid" cx="200" cy="200" r="188"/>
+        <circle class="dial-face" cx="200" cy="200" r="176"/>
+        <g id="ticksClock"></g>
+        <g id="numeralsClock"></g>
+        <text class="dial-brand" x="200" y="112">时刻</text>
+        <text class="dial-caption" x="200" y="130">SHIKE · AUTOMATIC</text>
+        <text class="dial-caption" id="dialDate" x="200" y="286"></text>
+        <g>
+          <line class="hand hand-shadow" id="hourHand" x1="200" y1="200" x2="200" y2="132"/>
+          <line class="hand hand-hour" id="hourHand2" x1="200" y1="200" x2="200" y2="132"/>
+          <line class="hand hand-shadow" id="minuteHand" x1="200" y1="200" x2="200" y2="96" style="stroke-width:4;opacity:.35"/>
+          <line class="hand hand-minute" id="minuteHand2" x1="200" y1="200" x2="200" y2="96"/>
+          <line class="hand hand-second" id="secondHand" x1="200" y1="214" x2="200" y2="84"/>
+        </g>
+        <circle class="center-ring" cx="200" cy="200" r="7"/>
+        <circle class="center-pin" cx="200" cy="200" r="3"/>
+      </svg>
+    </div>
+    <div class="readout">
+      <div class="readout-time"><span id="clockHM">00:00</span><span class="sec" id="clockS">00</span></div>
+      <div class="readout-meta"><span id="clockWeekday">星期一</span><span class="dot"></span><span id="clockDate">11月17日</span><span class="dot"></span><span>本地时间</span></div>
+      <div class="next-line" id="nextLine"></div>
+    </div>
+  </div>
+
+  <aside class="panel">
+    <div class="panel-head">
+      <h2 class="panel-title">闹钟列表</h2>
+      <button class="btn btn-solid" id="addAlarmBtn">新建闹钟</button>
+    </div>
+    <ul class="alarm-list" id="alarmList"></ul>
+    <div class="empty" id="alarmEmpty">还没有闹钟。<span>新建一个，到点会以你选定的提示音叫醒你。</span></div>
+    <div class="templates">
+      <div class="field-label">常用模板 · 点一下直接添加</div>
+      <div class="tpl-row" id="tplRow">
+        <button class="tpl" data-time="07:00" data-label="起床" data-days="1,2,3,4,5"><span>07:00</span><em>起床 · 工作日</em></button>
+        <button class="tpl" data-time="13:30" data-label="午休回来" data-days="1,2,3,4,5"><span>13:30</span><em>午休回来 · 工作日</em></button>
+        <button class="tpl" data-time="23:00" data-label="睡前" data-days="0,1,2,3,4,5,6"><span>23:00</span><em>睡前 · 每天</em></button>
+      </div>
+    </div>
+    <div class="dlg-hint">提示音在页面底部可全局设置，单个闹钟也可以单独指定。页面需保持在浏览器中打开，关闭后闹钟不再触发。</div>
+  </aside>
+</section>
+
+<!-- ===== 视图：倒计时 ===== -->
+<section class="view" id="view-timer" data-active="false" role="tabpanel" aria-label="倒计时">
+  <div class="stage">
+    <div class="dial-wrap">
+      <svg class="dial-svg" viewBox="0 0 400 400" role="img" aria-label="倒计时表盘">
+        <circle class="bezel-outer" cx="200" cy="200" r="196"/>
+        <circle class="bezel-mid" cx="200" cy="200" r="188"/>
+        <circle class="dial-face" cx="200" cy="200" r="176"/>
+        <g id="ticksTimer"></g>
+        <g id="numeralsTimer"></g>
+        <circle class="progress-arc" id="progressArc" cx="200" cy="200" r="150" stroke-dasharray="942.48" stroke-dashoffset="942.48" transform="rotate(-90 200 200)"/>
+        <text class="dial-brand" x="200" y="112">计时</text>
+        <text class="dial-caption" x="200" y="130">COUNTDOWN</text>
+        <g>
+          <line class="hand hand-shadow" id="timerHandShadow" x1="200" y1="200" x2="200" y2="86" style="stroke-width:4;opacity:.3"/>
+          <line class="hand hand-minute" id="timerHand" x1="200" y1="200" x2="200" y2="86"/>
+        </g>
+        <circle class="center-ring" cx="200" cy="200" r="7"/>
+        <circle class="center-pin" cx="200" cy="200" r="3"/>
+      </svg>
+    </div>
+    <div class="readout">
+      <div class="readout-time"><span id="cdTime">00:00</span></div>
+      <div class="timer-state" id="cdState"><span class="lamp"></span><span id="cdStateText">待命 · 设置时长后开始</span></div>
+      <div class="next-line" id="cdHint">结束时将用底部选定的提示音提醒，最长响铃 2 分钟。</div>
+    </div>
+  </div>
+
+  <aside class="panel">
+    <div class="panel-head"><h2 class="panel-title">设置时长</h2></div>
+    <div class="timer-form">
+      <div class="field-label">时 / 分 / 秒</div>
+      <div class="time-inputs">
+        <input class="time-input" id="inH" type="number" min="0" max="99" value="0" aria-label="小时">
+        <span class="colon">:</span>
+        <input class="time-input" id="inM" type="number" min="0" max="59" value="25" aria-label="分钟">
+        <span class="colon">:</span>
+        <input class="time-input" id="inS" type="number" min="0" max="59" value="0" aria-label="秒">
+      </div>
+      <div class="presets">
+        <button class="btn preset" data-preset="60">1 分钟</button>
+        <button class="btn preset" data-preset="300">5 分钟</button>
+        <button class="btn preset" data-preset="600">10 分钟</button>
+        <button class="btn preset" data-preset="1500">25 分钟</button>
+        <button class="btn preset" data-preset="2700">45 分钟</button>
+      </div>
+      <div class="timer-actions">
+        <button class="btn btn-solid" id="cdStart">开始</button>
+        <button class="btn" id="cdPause">暂停</button>
+        <button class="btn" id="cdReset">重置</button>
+      </div>
+      <div class="dlg-hint">支持空格键开始 / 暂停。倒计时期间可随时切换视图，计时不受影响。</div>
+      <div class="templates">
+        <div class="field-label">最近完成的计时</div>
+        <ul class="hist" id="cdHistory"></ul>
+      </div>
+    </div>
+  </aside>
+</section>
+</div>
+
+<!-- ===== 提示音栏 ===== -->
+<footer class="soundbar">
+  <div class="soundbar-inner">
+    <span class="soundbar-label">提示音</span>
+    <div class="sound-chips" id="soundChips"></div>
+    <div class="soundbar-right">
+      <button class="btn preview-btn" id="previewBtn">试听</button>
+      <div class="vol-wrap">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="none" stroke="#e8cf9a" stroke-width="1.4"/><path d="M16.5 8.5a5 5 0 0 1 0 7" fill="none" stroke="#e8cf9a" stroke-width="1.4"/></svg>
+        <input type="range" id="volume" min="0" max="100" value="65" aria-label="音量">
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ===== 弹窗：新建 / 编辑闹钟 ===== -->
+<div class="scrim" id="alarmScrim" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+  <div class="dialog">
+    <div class="dialog-head">
+      <h3 class="dialog-title" id="dlgTitle">新建闹钟</h3>
+      <button class="close-x" id="dlgClose" aria-label="关闭">×</button>
+    </div>
+    <div style="margin-bottom:18px">
+      <label class="dlg-label" for="dlgTime">时间</label>
+      <input class="time-big" id="dlgTime" type="time" value="07:30" step="60">
+    </div>
+    <div style="margin-bottom:18px">
+      <label class="dlg-label" for="dlgLabel">备注</label>
+      <input class="dlg-input" id="dlgLabel" type="text" maxlength="18" placeholder="例如：起床、喝水、开会">
+    </div>
+    <div style="margin-bottom:18px">
+      <div class="dlg-label">重复</div>
+      <div class="day-row" id="dlgDays"></div>
+      <div class="quick-days">
+        <button data-days="weekday">工作日</button>
+        <button data-days="all">每天</button>
+        <button data-days="weekend">周末</button>
+        <button data-days="once">仅一次</button>
+      </div>
+    </div>
+    <div style="margin-bottom:8px">
+      <div class="dlg-label">提示音</div>
+      <div class="dlg-sounds" id="dlgSounds"></div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn" id="dlgCancel">取消</button>
+      <button class="btn btn-solid" id="dlgSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 响铃覆盖层 ===== -->
+<div class="ring" id="ringOverlay" role="dialog" aria-modal="true" aria-label="响铃提醒">
+  <div class="ring-card">
+    <div class="ring-ring"></div>
+    <div class="ring-ring delay"></div>
+    <div class="ring-kicker">时 刻 已 到</div>
+    <div class="ring-time" id="ringTime">07:30</div>
+    <div class="ring-label" id="ringLabel">起床</div>
+    <div class="ring-sub" id="ringSub">提示音 · 经典铜铃</div>
+    <div class="ring-actions">
+      <button class="btn btn-solid" id="ringStop">停止</button>
+      <button class="btn btn-snooze" id="ringSnooze">5 分钟后再响</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ===== 基础工具 ===== */
+var $ = function(s,r){ return (r||document).querySelector(s); };
+var $$ = function(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+var pad = function(n){ return String(n).padStart(2,'0'); };
+var DAY_NAMES = ['日','一','二','三','四','五','六'];
+var WEEK_TEXT = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+var STORE_KEY = 'shike.clock.v1';
+var CUSTOM_SOUND = { name:'本机音频', hint:'从电脑里选一段 mp3 / wav 作为铃声' };
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function toast(msg){
+  var t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('is-on');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function(){ t.classList.remove('is-on'); }, 2400);
+}
+
+/* ===== 音频引擎 ===== */
+var ac = null;
+function audioCtx(){
+  var AC = window.AudioContext || window.webkitAudioContext;
+  if(!AC) return null;
+  if(!ac) ac = new AC();
+  if(ac.state === 'suspended') ac.resume();
+  return ac;
+}
+/* 单个音符：起音 + 指数衰减，可带滑音 */
+function tone(freq, dur, vol, opts){
+  var ctx = audioCtx(); if(!ctx) return;
+  opts = opts || {};
+  var t0 = ctx.currentTime + (opts.delay || 0);
+  var o = ctx.createOscillator();
+  var g = ctx.createGain();
+  o.type = opts.type || 'sine';
+  o.frequency.setValueAtTime(freq, t0);
+  if(opts.to) o.frequency.exponentialRampToValueAtTime(Math.max(30, opts.to), t0 + dur);
+  var peak = Math.min(1, Math.max(0.0003, vol * state.volume * 0.95));
+  g.gain.setValueAtTime(0.0004, t0);
+  g.gain.exponentialRampToValueAtTime(peak, t0 + (opts.attack || 0.012));
+  g.gain.exponentialRampToValueAtTime(0.0004, t0 + dur);
+  o.connect(g);
+  g.connect(ctx.destination);
+  o.start(t0);
+  o.stop(t0 + dur + 0.03);
+}
+
+var SOUNDS = {
+  bell: {
+    name:'经典铜铃', hint:'两声铜铃，余韵绵长', period:2.6,
+    play:function(){
+      var strike = function(d){
+        tone(784, 1.35, 0.42, {type:'triangle', delay:d});
+        tone(1176, 1.05, 0.26, {type:'sine', delay:d + 0.004});
+        tone(392, 1.5, 0.2, {type:'sine', delay:d});
+        tone(2350, 0.26, 0.1, {type:'sine', delay:d + 0.002});
+      };
+      strike(0); strike(0.3);
+    }
+  },
+  beep: {
+    name:'电子滴答', hint:'短促三连哔声', period:1.7,
+    play:function(){
+      [0, 0.22, 0.44].forEach(function(d){
+        tone(1046, 0.13, 0.45, {type:'square', delay:d, attack:0.006});
+      });
+    }
+  },
+  chime: {
+    name:'西敏报时', hint:'四音钟楼旋律', period:3.4,
+    play:function(){
+      var notes = [[659.25,0.62],[587.33,0.62],[523.25,0.62],[440,1.2]];
+      var d = 0;
+      notes.forEach(function(n){
+        tone(n[0], n[1] * 1.6, 0.34, {type:'sine', delay:d});
+        tone(n[0] * 2, n[1] * 0.7, 0.1, {type:'sine', delay:d + 0.01});
+        d += n[1] * 0.62;
+      });
+    }
+  },
+  marimba: {
+    name:'木琴晨曲', hint:'清亮四音上行', period:2.4,
+    play:function(){
+      [523.25, 659.25, 783.99, 1046.5].forEach(function(f,i){
+        tone(f, 0.45, 0.36, {type:'triangle', delay:i * 0.16, attack:0.008});
+        tone(f * 2, 0.2, 0.08, {type:'triangle', delay:i * 0.16 + 0.01});
+      });
+    }
+  },
+  bird: {
+    name:'林间鸟鸣', hint:'细碎啾啾，轻而不吵', period:2.2,
+    play:function(){
+      var seq = [[0,2100,3300],[0.1,2450,3700],[0.19,1950,2900],[0.35,2600,3900],[0.46,2250,3150],[0.62,1800,2700]];
+      seq.forEach(function(s){
+        tone(s[1], 0.1, 0.2, {delay:s[0], to:s[2], attack:0.02});
+        tone(s[1] * 1.45, 0.06, 0.08, {delay:s[0] + 0.03, to:s[2] * 1.1, attack:0.02});
+      });
+    }
+  }
+};
+var PICKABLE = ['bell','beep','chime','marimba','bird'];
+
+/* ===== 状态与持久化 ===== */
+var state = { alarms: [], sound: 'bell', volume: 0.65, history: [], notifyAsked: false };
+var customUrl = null;
+var customName = '';
+
+function loadState(){
+  try{
+    var raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return;
+    var d = JSON.parse(raw);
+    if(Array.isArray(d.alarms)){
+      state.alarms = d.alarms.filter(function(a){ return a && typeof a.time === 'string'; }).map(function(a){
+        return {
+          id: a.id || ('a' + Math.random().toString(36).slice(2,8)),
+          time: a.time,
+          label: a.label || '',
+          days: Array.isArray(a.days) ? a.days : [],
+          sound: SOUNDS[a.sound] ? a.sound : 'bell',
+          on: !!a.on
+        };
+      });
+    }
+    if(typeof d.sound === 'string' && (SOUNDS[d.sound] || d.sound === 'custom')) state.sound = d.sound;
+    if(typeof d.volume === 'number') state.volume = Math.min(1, Math.max(0, d.volume));
+    if(d.notifyAsked) state.notifyAsked = true;
+    if(Array.isArray(d.history)){
+      state.history = d.history.filter(function(h){
+        return h && typeof h.sec === 'number' && typeof h.endAt === 'number';
+      }).slice(0, 5);
+    }
+  }catch(e){}
+}
+function saveState(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      alarms: state.alarms,
+      sound: state.sound === 'custom' ? 'bell' : state.sound,
+      volume: state.volume,
+      history: state.history,
+      notifyAsked: !!state.notifyAsked
+    }));
+  }catch(e){}
+}
+
+/* ===== 表盘绘制 ===== */
+function paintDial(ticksEl, numsEl, numerals){
+  var cx = 200, cy = 200;
+  var ticks = '';
+  for(var i = 0; i < 60; i++){
+    var major = i % 5 === 0;
+    var outer = 176;
+    var inner = major ? 160 : 168;
+    ticks += '<line class="tick' + (major ? ' tick-major' : '') + '" x1="' + cx + '" y1="' + (cy - outer) +
+      '" x2="' + cx + '" y2="' + (cy - inner) + '" transform="rotate(' + (i * 6) + ' ' + cx + ' ' + cy +
+      ')" stroke-width="' + (major ? 1.8 : 0.9) + '"/>';
+  }
+  ticksEl.innerHTML = ticks;
+  if(!numsEl || !numerals) return;
+  var out = '';
+  for(var h = 1; h <= 12; h++){
+    var a = h * 30 * Math.PI / 180;
+    var x = cx + 139 * Math.sin(a);
+    var y = cy - 139 * Math.cos(a);
+    out += '<text class="numeral" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) +
+      '" text-anchor="middle" dominant-baseline="middle">' + h + '</text>';
+  }
+  numsEl.innerHTML = out;
+}
+
+/* 倒计时表盘的四等分刻度 = 走到该处时的剩余时间，随总时长变化 */
+var lastLabelTotal = null;
+function paintTimerLabels(total){
+  if(total === lastLabelTotal) return;
+  lastLabelTotal = total;
+  var g = $('#numeralsTimer');
+  if(!g) return;
+  if(!total || total <= 0){ g.innerHTML = ''; return; }
+  var marks = [
+    [0, total],
+    [90, Math.round(total * 0.75)],
+    [180, Math.round(total * 0.5)],
+    [270, Math.round(total * 0.25)]
+  ];
+  g.innerHTML = marks.map(function(m){
+    var a = m[0] * Math.PI / 180;
+    var x = 200 + 126 * Math.sin(a);
+    var y = 200 - 126 * Math.cos(a);
+    return '<text class="numeral-minor" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) +
+      '" text-anchor="middle" dominant-baseline="middle">' + fmtCd(m[1]) + '</text>';
+  }).join('');
+}
+
+function rotate(el, deg){
+  if(el) el.setAttribute('transform', 'rotate(' + deg.toFixed(3) + ' 200 200)');
+}
+
+/* ===== 当前时间 ===== */
+function tickClock(){
+  var now = new Date();
+  var h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+  $('#clockHM').textContent = pad(h) + ':' + pad(m);
+  $('#clockS').textContent = pad(s);
+  $('#clockWeekday').textContent = WEEK_TEXT[now.getDay()];
+  $('#clockDate').textContent = (now.getMonth() + 1) + '月' + now.getDate() + '日';
+  $('#dialDate').textContent = pad(now.getMonth() + 1) + ' · ' + pad(now.getDate()) + ' · ' + now.getFullYear();
+  rotate($('#secondHand'), s * 6);
+  var minDeg = m * 6 + s * 0.1;
+  rotate($('#minuteHand'), minDeg);
+  rotate($('#minuteHand2'), minDeg);
+  var hrDeg = (h % 12) * 30 + m * 0.5;
+  rotate($('#hourHand'), hrDeg);
+  rotate($('#hourHand2'), hrDeg);
+}
+
+/* ===== 闹钟模型 ===== */
+function nextOccurrence(a, fromMs){
+  var parts = a.time.split(':');
+  var hh = parseInt(parts[0], 10), mm = parseInt(parts[1], 10);
+  if(isNaN(hh) || isNaN(mm)) return null;
+  var base = new Date(fromMs);
+  for(var i = 0; i < 9; i++){
+    var d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i, hh, mm, 0, 0);
+    if(d.getTime() <= fromMs) continue;
+    if(a.days.length && a.days.indexOf(d.getDay()) === -1) continue;
+    return d;
+  }
+  return null;
+}
+
+function repeatText(a){
+  if(!a.days.length) return '仅一次';
+  if(a.days.length === 7) return '每天';
+  var set = a.days.slice().sort();
+  if(set.join() === '1,2,3,4,5') return '工作日';
+  if(set.join() === '0,6') return '周末';
+  return set.map(function(d){ return '周' + DAY_NAMES[d]; }).join(' ');
+}
+
+function renderAlarms(){
+  var list = $('#alarmList');
+  var sorted = state.alarms.slice().sort(function(x,y){ return x.time.localeCompare(y.time); });
+  if(!sorted.length){
+    list.innerHTML = '';
+    $('#alarmEmpty').style.display = '';
+    return;
+  }
+  $('#alarmEmpty').style.display = 'none';
+  list.innerHTML = sorted.map(function(a){
+    var meta = '<div class="alarm-meta">' +
+      '<span>' + repeatText(a) + '</span>' +
+      (a.label ? '<span class="sep">/</span><span>' + escapeHtml(a.label) + '</span>' : '') +
+      '<span class="sep">/</span><span class="sound">' + SOUNDS[a.sound].name + '</span>' +
+      '</div>';
+    return '<li class="alarm' + (a.on ? '' : ' is-off') + '" data-id="' + a.id + '">' +
+      '<div class="alarm-body">' +
+        '<button class="switch" role="switch" aria-checked="' + (a.on ? 'true' : 'false') +
+          '" aria-label="启用或关闭闹钟" data-act="toggle"></button>' +
+        '<div style="min-width:0">' +
+          '<div class="alarm-time">' + a.time + '</div>' +
+          meta +
+        '</div>' +
+      '</div>' +
+      '<div class="alarm-actions">' +
+        '<button data-act="edit">编辑</button>' +
+        '<button data-act="del">删除</button>' +
+      '</div>' +
+    '</li>';
+  }).join('');
+}
+
+function nextEnabledAlarm(){
+  var best = null;
+  var now = Date.now();
+  state.alarms.forEach(function(a){
+    if(!a.on) return;
+    var d = nextOccurrence(a, now);
+    if(d && (!best || d.getTime() < best.date.getTime())) best = { alarm: a, date: d };
+  });
+  return best;
+}
+
+function humanLeft(ms){
+  var mins = Math.max(1, Math.round(ms / 60000));
+  var h = Math.floor(mins / 60), m = mins % 60;
+  if(h >= 24){
+    var d = Math.floor(h / 24);
+    return d + ' 天' + (h % 24 ? ' ' + (h % 24) + ' 小时' : '');
+  }
+  if(h > 0) return h + ' 小时' + (m ? ' ' + m + ' 分' : '');
+  return m + ' 分钟';
+}
+function dayHint(date){
+  var now = new Date();
+  var d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var d1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  var diff = Math.round((d1 - d0) / 86400000);
+  if(diff === 0) return '今天';
+  if(diff === 1) return '明天';
+  return '周' + DAY_NAMES[date.getDay()];
+}
+
+function renderNextLine(){
+  var el = $('#nextLine');
+  var best = nextEnabledAlarm();
+  if(!best){
+    el.innerHTML = '<span class="quiet">暂无启用的闹钟</span>';
+    return;
+  }
+  el.innerHTML = '下一个闹钟 <strong>' + best.alarm.time + '</strong> · ' + dayHint(best.date) +
+    ' · 还有 ' + humanLeft(best.date.getTime() - Date.now());
+}
+
+/* ===== 响铃 ===== */
+var ring = { active:false, timer:null, el:null, autoStop:null, titleTimer:null, info:null };
+
+function startRing(soundId, info){
+  stopRing(true);
+  audioCtx();
+  var id = (SOUNDS[soundId] || soundId === 'custom') ? soundId : 'bell';
+  if(id === 'custom' && !customUrl){
+    id = 'bell';
+    toast('本机音频尚未选择，已改用经典铜铃');
+  }
+  var playOnce = function(){
+    if(id === 'custom'){
+      return;
+    }
+    SOUNDS[id].play();
+  };
+  ring.active = true;
+  ring.info = info || {};
+  if(id === 'custom'){
+    ring.el = new Audio(customUrl);
+    ring.el.loop = true;
+    ring.el.volume = Math.min(1, state.volume);
+    var p = ring.el.play();
+    if(p && p.catch) p.catch(function(){});
+  } else {
+    playOnce();
+    ring.timer = setInterval(playOnce, SOUNDS[id].period * 1000);
+  }
+  $('#ringTime').textContent = ring.info.timeText || '00:00';
+  $('#ringLabel').textContent = ring.info.label || '时间到';
+  $('#ringSub').textContent = '提示音 · ' + (id === 'custom' ? (customName || CUSTOM_SOUND.name) : SOUNDS[id].name);
+  $('#ringOverlay').classList.add('is-open');
+  document.title = '时刻 · 闹钟与倒计时';
+  ring.autoStop = setTimeout(function(){ stopRing(); toast('响铃已持续 2 分钟，自动停止'); }, 120000);
+  var base = '时刻 · 闹钟与倒计时';
+  var on = false;
+  ring.titleTimer = setInterval(function(){
+    on = !on;
+    document.title = on ? '时间到 — 时刻' : base;
+  }, 900);
+  try{
+    if('Notification' in window && Notification.permission === 'granted'){
+      new Notification('时刻 · 闹钟', { body: (ring.info.label || '时间到') + ' ' + (ring.info.timeText || '') });
+    }
+  }catch(e){}
+}
+
+function stopRing(keepTitle){
+  if(ring.timer){ clearInterval(ring.timer); ring.timer = null; }
+  if(ring.autoStop){ clearTimeout(ring.autoStop); ring.autoStop = null; }
+  if(ring.titleTimer){ clearInterval(ring.titleTimer); ring.titleTimer = null; }
+  if(ring.el){
+    try{ ring.el.pause(); }catch(e){}
+    ring.el = null;
+  }
+  ring.active = false;
+  $('#ringOverlay').classList.remove('is-open');
+  if(!keepTitle) document.title = '时刻 · 闹钟与倒计时';
+}
+
+function fireAlarm(a){
+  if(ring.active) return;
+  if(!a.days.length){
+    a.on = false;
+    saveState();
+    renderAlarms();
+    renderNextLine();
+  }
+  startRing(a.sound || 'bell', { timeText: a.time, label: a.label || '闹钟', sound: a.sound || 'bell' });
+}
+
+var lastTick = Date.now();
+function checkAlarms(){
+  var now = Date.now();
+  state.alarms.forEach(function(a){
+    if(!a.on || !a.time) return;
+    var next = nextOccurrence(a, lastTick);
+    if(next && next.getTime() <= now) fireAlarm(a);
+  });
+  lastTick = now;
+}
+
+/* ===== 倒计时 ===== */
+var cd = { total: 0, remaining: 0, running: false, target: 0, done: false, loop: null };
+var ARC_C = 2 * Math.PI * 150;
+
+function readInputs(){
+  var h = Math.min(99, Math.max(0, parseInt($('#inH').value, 10) || 0));
+  var m = Math.min(59, Math.max(0, parseInt($('#inM').value, 10) || 0));
+  var s = Math.min(59, Math.max(0, parseInt($('#inS').value, 10) || 0));
+  return h * 3600 + m * 60 + s;
+}
+function writeInputs(total){
+  $('#inH').value = Math.floor(total / 3600);
+  $('#inM').value = Math.floor((total % 3600) / 60);
+  $('#inS').value = total % 60;
+}
+function fmtCd(sec){
+  sec = Math.max(0, Math.ceil(sec));
+  var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return h > 0 ? h + ':' + pad(m) + ':' + pad(s) : pad(m) + ':' + pad(s);
+}
+function setCdState(text, cls){
+  $('#cdStateText').textContent = text;
+  var box = $('#cdState');
+  box.classList.toggle('is-running', cls === 'running');
+  box.classList.toggle('is-done', cls === 'done');
+}
+function renderHistory(){
+  var list = $('#cdHistory');
+  if(!list) return;
+  if(!state.history.length){
+    list.innerHTML = '<li class="hist-empty">还没有完成的计时</li>';
+    return;
+  }
+  list.innerHTML = state.history.slice(0, 5).map(function(h){
+    var d = new Date(h.endAt);
+    return '<li><strong>' + fmtCd(h.sec) + '</strong><span>' + (d.getMonth() + 1) + '月' + d.getDate() +
+      '日 ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ' 结束</span></li>';
+  }).join('');
+}
+
+function renderCd(){
+  var total = cd.total || readInputs();
+  $('#cdTime').textContent = fmtCd(cd.remaining);
+  paintTimerLabels(total);
+  var frac = total > 0 ? Math.min(1, Math.max(0, cd.remaining / total)) : 0;
+  $('#progressArc').setAttribute('stroke-dashoffset', (ARC_C * (1 - frac)).toFixed(2));
+  var deg = total > 0 ? (1 - frac) * 360 : 0;
+  rotate($('#timerHand'), deg);
+  rotate($('#timerHandShadow'), deg);
+}
+function cdTick(){
+  if(!cd.running) return;
+  var rem = (cd.target - Date.now()) / 1000;
+  cd.remaining = Math.max(0, rem);
+  renderCd();
+  if(rem <= 0){
+    cd.running = false;
+    cd.done = true;
+    cd.remaining = 0;
+    clearInterval(cd.loop);
+    cd.loop = null;
+    renderCd();
+    setCdState('已结束 · 提示音播放中', 'done');
+    $('#cdHint').textContent = '时间到。按「重置」可再次设定。';
+    state.history.unshift({ sec: cd.total, endAt: Date.now() });
+    state.history = state.history.slice(0, 5);
+    saveState();
+    renderHistory();
+    startRing(state.sound === 'custom' ? 'custom' : state.sound,
+      { timeText: '00:00', label: '倒计时结束', sound: state.sound === 'custom' ? 'bell' : state.sound });
+  }
+}
+function fmtClock(ts){
+  var d = new Date(ts);
+  return pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+function cdStart(){
+  if(cd.running) return;
+  audioCtx();
+  var resuming = !cd.done && cd.remaining > 0.5 && cd.total > 0;
+  if(!resuming){
+    cd.total = readInputs();
+    cd.remaining = cd.total;
+  }
+  if(cd.total <= 0){
+    toast('请先设置大于 0 的时长');
+    return;
+  }
+  if(cd.remaining <= 0) cd.remaining = cd.total;
+  cd.done = false;
+  cd.target = Date.now() + cd.remaining * 1000;
+  cd.running = true;
+  if(cd.loop) clearInterval(cd.loop);
+  cd.loop = setInterval(cdTick, 120);
+  setCdState('计时中 · 预计 ' + fmtClock(cd.target) + ' 结束', 'running');
+  $('#cdHint').textContent = '结束时将用底部选定的提示音提醒，最长响铃 2 分钟。';
+  renderCd();
+}
+function cdPause(){
+  if(!cd.running) return;
+  cd.remaining = Math.max(0, (cd.target - Date.now()) / 1000);
+  cd.running = false;
+  clearInterval(cd.loop);
+  cd.loop = null;
+  renderCd();
+  setCdState('已暂停 · 剩余 ' + fmtCd(cd.remaining), '');
+}
+function cdReset(){
+  cd.running = false;
+  clearInterval(cd.loop);
+  cd.loop = null;
+  cd.done = false;
+  cd.total = readInputs();
+  cd.remaining = cd.total;
+  cd.target = 0;
+  renderCd();
+  setCdState(cd.total > 0 ? '待命 · 点击开始' : '待命 · 设置时长后开始', '');
+  $('#cdHint').textContent = '结束时将用底部选定的提示音提醒，最长响铃 2 分钟。';
+}
+
+/* ===== 提示音栏 ===== */
+function renderSoundChips(){
+  var wrap = $('#soundChips');
+  var html = PICKABLE.map(function(id){
+    return '<button class="chip" data-sound="' + id + '" aria-pressed="' + (state.sound === id ? 'true' : 'false') +
+      '" title="' + SOUNDS[id].hint + '">' + SOUNDS[id].name + '</button>';
+  }).join('');
+  html += '<button class="chip" data-sound="custom" aria-pressed="' + (state.sound === 'custom' ? 'true' : 'false') +
+    '">' + (customName ? escapeHtml(customName.slice(0, 12)) : '本机音频') + '</button>';
+  wrap.innerHTML = html;
+}
+
+function pickCustomFile(){
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'audio/*';
+  input.onchange = function(){
+    var f = input.files && input.files[0];
+    if(!f) return;
+    if(f.size > 30 * 1024 * 1024){
+      toast('音频不能超过 30MB');
+      return;
+    }
+    if(customUrl) URL.revokeObjectURL(customUrl);
+    customUrl = URL.createObjectURL(f);
+    customName = f.name.replace(/\.[^.]+$/, '');
+    state.sound = 'custom';
+    saveState();
+    renderSoundChips();
+    preview();
+    toast('已选择本机音频：' + customName);
+  };
+  input.click();
+}
+
+var previewAudio = null;
+function preview(){
+  audioCtx();
+  if(state.sound === 'custom'){
+    if(!customUrl){
+      toast('请先选择一段本机音频');
+      return;
+    }
+    if(previewAudio){ try{ previewAudio.pause(); }catch(e){} }
+    previewAudio = new Audio(customUrl);
+    previewAudio.volume = Math.min(1, state.volume);
+    var p = previewAudio.play();
+    if(p && p.catch) p.catch(function(){});
+    return;
+  }
+  SOUNDS[state.sound].play();
+}
+
+/* ===== 闹钟弹窗 ===== */
+var draft = { days: [1,2,3,4,5], sound: 'bell', id: null };
+
+function buildDayChips(){
+  $('#dlgDays').innerHTML = [1,2,3,4,5,6,0].map(function(d){
+    return '<button class="day" data-day="' + d + '" aria-pressed="false">' + DAY_NAMES[d] + '</button>';
+  }).join('');
+}
+function buildSoundPicker(){
+  $('#dlgSounds').innerHTML = PICKABLE.map(function(id){
+    return '<button class="snd" data-sound="' + id + '" aria-pressed="false">' +
+      '<strong>' + SOUNDS[id].name + '</strong><span>' + SOUNDS[id].hint + '</span></button>';
+  }).join('');
+}
+function syncDraftUI(){
+  $$('#dlgDays .day').forEach(function(b){
+    b.setAttribute('aria-pressed', draft.days.indexOf(parseInt(b.dataset.day, 10)) >= 0 ? 'true' : 'false');
+  });
+  $$('#dlgSounds .snd').forEach(function(b){
+    b.setAttribute('aria-pressed', draft.sound === b.dataset.sound ? 'true' : 'false');
+  });
+  $('#dlgTitle').textContent = draft.id ? '编辑闹钟' : '新建闹钟';
+}
+
+function openDialog(id){
+  var a = id ? state.alarms.filter(function(x){ return x.id === id; })[0] : null;
+  if(a){
+    draft = { id: a.id, days: a.days.slice(), sound: a.sound, };
+    $('#dlgTime').value = a.time;
+    $('#dlgLabel').value = a.label || '';
+  } else {
+    var now = new Date();
+    var t = new Date(now.getTime() + 10 * 60000);
+    draft = { id: null, days: [1,2,3,4,5], sound: PICKABLE.indexOf(state.sound) >= 0 ? state.sound : 'bell' };
+    $('#dlgTime').value = pad(t.getHours()) + ':' + pad(t.getMinutes());
+    $('#dlgLabel').value = '';
+  }
+  syncDraftUI();
+  $('#alarmScrim').classList.add('is-open');
+  setTimeout(function(){ $('#dlgTime').focus(); }, 60);
+}
+function closeDialog(){ $('#alarmScrim').classList.remove('is-open'); }
+
+/* 只在第一次保存闹钟时问一次通知权限，用户拒绝或忽略后不再打扰 */
+function maybeAskNotify(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission !== 'default') return;
+  if(state.notifyAsked) return;
+  state.notifyAsked = true;
+  saveState();
+  try{
+    var p = Notification.requestPermission();
+    if(p && typeof p.then === 'function') p.then(function(){});
+  }catch(e){}
+}
+
+function saveDialog(){
+  var time = $('#dlgTime').value;
+  if(!/^\d{2}:\d{2}$/.test(time)){
+    toast('请选择有效的时间');
+    return;
+  }
+  var label = $('#dlgLabel').value.trim().slice(0, 18);
+  if(draft.id){
+    var a = state.alarms.filter(function(x){ return x.id === draft.id; })[0];
+    if(a){
+      a.time = time; a.label = label; a.days = draft.days.slice(); a.sound = draft.sound; a.on = true;
+    }
+  } else {
+    state.alarms.push({
+      id: 'a' + Math.random().toString(36).slice(2, 8),
+      time: time, label: label, days: draft.days.slice(), sound: draft.sound, on: true
+    });
+  }
+  saveState();
+  renderAlarms();
+  renderNextLine();
+  closeDialog();
+  toast(draft.id ? '闹钟已更新' : '闹钟已创建 · ' + time);
+  maybeAskNotify();
+}
+
+/* ===== 视图切换 ===== */
+function switchView(name){
+  $$('.tab').forEach(function(t){
+    t.setAttribute('aria-selected', t.dataset.view === name ? 'true' : 'false');
+  });
+  $('#view-alarm').setAttribute('data-active', name === 'alarm' ? 'true' : 'false');
+  $('#view-timer').setAttribute('data-active', name === 'timer' ? 'true' : 'false');
+  $('#view-alarm').style.display = name === 'alarm' ? 'grid' : 'none';
+  $('#view-timer').style.display = name === 'timer' ? 'grid' : 'none';
+}
+
+/* ===== 事件绑定 ===== */
+function bind(){
+  $$('.tab').forEach(function(t){
+    t.addEventListener('click', function(){ switchView(t.dataset.view); });
+  });
+
+  $('#addAlarmBtn').addEventListener('click', function(){ openDialog(null); });
+  $('#dlgClose').addEventListener('click', closeDialog);
+  $('#dlgCancel').addEventListener('click', closeDialog);
+  $('#dlgSave').addEventListener('click', saveDialog);
+  $('#alarmScrim').addEventListener('click', function(e){ if(e.target === $('#alarmScrim')) closeDialog(); });
+
+  $('#dlgDays').addEventListener('click', function(e){
+    var b = e.target.closest('.day'); if(!b) return;
+    var d = parseInt(b.dataset.day, 10);
+    var i = draft.days.indexOf(d);
+    if(i >= 0) draft.days.splice(i, 1); else draft.days.push(d);
+    syncDraftUI();
+  });
+  $$('.quick-days button').forEach(function(b){
+    b.addEventListener('click', function(){
+      var k = b.dataset.days;
+      draft.days = k === 'weekday' ? [1,2,3,4,5] : k === 'all' ? [0,1,2,3,4,5,6] : k === 'weekend' ? [0,6] : [];
+      syncDraftUI();
+    });
+  });
+  $('#dlgSounds').addEventListener('click', function(e){
+    var b = e.target.closest('.snd'); if(!b) return;
+    draft.sound = b.dataset.sound;
+    syncDraftUI();
+    SOUNDS[draft.sound].play();
+  });
+
+  $('#alarmList').addEventListener('click', function(e){
+    var row = e.target.closest('.alarm'); if(!row) return;
+    var id = row.dataset.id;
+    var act = e.target.dataset.act;
+    if(act === 'toggle'){
+      var a = state.alarms.filter(function(x){ return x.id === id; })[0];
+      if(!a) return;
+      a.on = !a.on;
+      saveState(); renderAlarms(); renderNextLine();
+      toast(a.on ? ('闹钟 ' + a.time + ' 已启用') : ('闹钟 ' + a.time + ' 已关闭'));
+    } else if(act === 'edit'){
+      openDialog(id);
+    } else if(act === 'del'){
+      state.alarms = state.alarms.filter(function(x){ return x.id !== id; });
+      saveState(); renderAlarms(); renderNextLine();
+      toast('已删除该闹钟');
+    }
+  });
+
+  $('#tplRow').addEventListener('click', function(e){
+    var b = e.target.closest('.tpl'); if(!b) return;
+    var days = b.dataset.days ? b.dataset.days.split(',').map(Number) : [];
+    state.alarms.push({
+      id: 'a' + Math.random().toString(36).slice(2, 8),
+      time: b.dataset.time,
+      label: b.dataset.label,
+      days: days,
+      sound: PICKABLE.indexOf(state.sound) >= 0 ? state.sound : 'bell',
+      on: true
+    });
+    saveState();
+    renderAlarms();
+    renderNextLine();
+    toast('已添加闹钟 · ' + b.dataset.time + ' ' + b.dataset.label);
+  });
+
+  $('#ringStop').addEventListener('click', function(){
+    stopRing();
+    toast('已停止响铃');
+  });
+  $('#ringSnooze').addEventListener('click', function(){
+    var info = ring.info || {};
+    var lbl = info.label || '闹钟';
+    var snd = info.sound || (PICKABLE.indexOf(state.sound) >= 0 ? state.sound : 'bell');
+    stopRing();
+    setTimeout(function(){
+      startRing(snd, { timeText: '5 分钟后', label: lbl + ' · 稍后提醒', sound: snd });
+    }, 5 * 60000);
+    toast('5 分钟后再次响铃');
+  });
+
+  $('#soundChips').addEventListener('click', function(e){
+    var c = e.target.closest('.chip'); if(!c) return;
+    if(c.dataset.sound === 'custom'){
+      pickCustomFile();
+      return;
+    }
+    state.sound = c.dataset.sound;
+    saveState();
+    renderSoundChips();
+    preview();
+    if(!cd.running) $('#cdHint').textContent = '结束时将用「' + SOUNDS[state.sound].name + '」提醒，最长 2 分钟。';
+  });
+  $('#previewBtn').addEventListener('click', function(){ preview(); });
+  $('#volume').addEventListener('input', function(){
+    state.volume = parseInt($('#volume').value, 10) / 100;
+    saveState();
+  });
+  $('#volume').addEventListener('change', function(){
+    tone(880, 0.22, 0.35, {type:'triangle'});
+  });
+
+  $('#cdStart').addEventListener('click', cdStart);
+  $('#cdPause').addEventListener('click', cdPause);
+  $('#cdReset').addEventListener('click', cdReset);
+  $$('.preset').forEach(function(b){
+    b.addEventListener('click', function(){
+      var sec = parseInt(b.dataset.preset, 10);
+      cd.running = false;
+      clearInterval(cd.loop); cd.loop = null;
+      cd.done = false;
+      cd.total = sec;
+      cd.remaining = sec;
+      writeInputs(sec);
+      renderCd();
+      setCdState('待命 · 点击开始', '');
+    });
+  });
+  ['#inH','#inM','#inS'].forEach(function(sel){
+    $(sel).addEventListener('change', function(){
+      if(cd.running) return;
+      cd.total = readInputs();
+      cd.remaining = cd.total;
+      cd.done = false;
+      renderCd();
+      setCdState(cd.total > 0 ? '待命 · 点击开始' : '待命 · 设置时长后开始', '');
+    });
+  });
+
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape'){
+      if($('#ringOverlay').classList.contains('is-open')){ stopRing(); return; }
+      if($('#alarmScrim').classList.contains('is-open')){ closeDialog(); return; }
+    }
+    if(e.code === 'Space'){
+      var tag = (e.target.tagName || '').toLowerCase();
+      if(tag === 'input' || tag === 'button' || tag === 'select' || tag === 'textarea') return;
+      if(!$('#alarmScrim').classList.contains('is-open')){
+        e.preventDefault();
+        if($('#view-timer').getAttribute('data-active') === 'true'){
+          if(cd.running) cdPause(); else cdStart();
+        }
+      }
+    }
+  });
+
+  document.addEventListener('pointerdown', function once(){
+    audioCtx();
+    document.removeEventListener('pointerdown', once);
+  });
+}
+
+/* ===== 启动 ===== */
+function init(){
+  loadState();
+  paintDial($('#ticksClock'), $('#numeralsClock'), 'hours');
+  paintDial($('#ticksTimer'), null, null);
+  buildDayChips();
+  buildSoundPicker();
+  renderAlarms();
+  renderSoundChips();
+  $('#volume').value = Math.round(state.volume * 100);
+  bind();
+  $('#inH').value = 0; $('#inM').value = 25; $('#inS').value = 0;
+  cd.total = 1500; cd.remaining = 1500;
+  renderCd();
+  renderHistory();
+  switchView('alarm');
+  tickClock();
+  renderNextLine();
+  setInterval(function(){ tickClock(); checkAlarms(); renderNextLine(); }, 500);
+  lastTick = Date.now();
+}
+init();
+
+})();
+</script>
+</body>
+</html>
