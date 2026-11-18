@@ -4,8 +4,7 @@
 
 ## 打开方式
 
-- 在线使用：<https://xiaoxiaoshuo.top/alarm-clock/>
-- GitHub Pages：<https://yao-hub.github.io/alarm-clock/>
+- 在线使用：<https://yao-hub.github.io/alarm-clock/>
 - 本地使用：双击 `index.html`，用 Chrome / Edge 打开即可，无需安装依赖、无需联网。
 
 提示音由浏览器内的 Web Audio 实时合成，不依赖任何音频文件（也可另选本机音频）。
