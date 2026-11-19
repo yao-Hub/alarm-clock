@@ -71,6 +71,19 @@ export function formatCountdown(seconds) {
     : `${pad(minutes)}:${pad(restSeconds)}`;
 }
 
+export function formatTimerLength(seconds) {
+  const total = Math.max(0, Math.ceil(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const restSeconds = total % 60;
+
+  return [
+    hours > 0 ? `${hours}H` : '',
+    minutes > 0 ? `${minutes}M` : '',
+    restSeconds > 0 || total === 0 ? `${restSeconds}S` : ''
+  ].join('');
+}
+
 export function formatClockTime(timestamp) {
   const date = new Date(timestamp);
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
