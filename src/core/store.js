@@ -1,4 +1,4 @@
-import { PICKABLE_SOUNDS, SOUNDS } from './audio.js';
+import { PICKABLE_SOUNDS, SOUNDS, isUploadedSound } from './audio.js';
 import { createId } from '../utils/dom.js';
 import { nextOccurrence } from '../utils/time.js';
 
@@ -8,6 +8,8 @@ export const state = {
   alarms: [],
   sound: 'bell',
   volume: 0.65,
+  alarmRingDuration: 120,
+  timerRingDuration: 120,
   history: [],
   notifyAsked: false
 };
@@ -24,10 +26,12 @@ export function loadState() {
         .map(normalizeAlarm);
     }
 
-    if (typeof stored.sound === 'string' && (SOUNDS[stored.sound] || stored.sound === 'custom')) {
+    if (typeof stored.sound === 'string' && SOUNDS[stored.sound]) {
       state.sound = stored.sound;
     }
     if (typeof stored.volume === 'number') state.volume = Math.min(1, Math.max(0, stored.volume));
+    state.alarmRingDuration = normalizeDuration(stored.alarmRingDuration);
+    state.timerRingDuration = normalizeDuration(stored.timerRingDuration);
     state.notifyAsked = Boolean(stored.notifyAsked);
 
     if (Array.isArray(stored.history)) {
@@ -44,8 +48,10 @@ export function saveState() {
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify({
       alarms: state.alarms,
-      sound: state.sound === 'custom' ? 'bell' : state.sound,
+      sound: isUploadedSound(state.sound) ? 'bell' : state.sound,
       volume: state.volume,
+      alarmRingDuration: state.alarmRingDuration,
+      timerRingDuration: state.timerRingDuration,
       history: state.history,
       notifyAsked: state.notifyAsked
     }));
@@ -64,7 +70,7 @@ export function createAlarm({ time, label = '', days, sound }) {
     time,
     label,
     days: [...days],
-    sound: SOUNDS[sound] ? sound : 'bell',
+    sound: SOUNDS[sound] || isUploadedSound(sound) ? sound : 'bell',
     on: true
   };
   state.alarms.push(alarm);
@@ -80,7 +86,9 @@ export function replaceAlarm(id, values) {
 }
 
 export function removeAlarm(id) {
+  const alarm = findAlarm(id);
   state.alarms = state.alarms.filter((alarm) => alarm.id !== id);
+  return alarm;
 }
 
 export function toggleAlarm(id) {
@@ -98,9 +106,20 @@ export function setVolume(nextVolume) {
   state.volume = Math.min(1, Math.max(0, nextVolume));
 }
 
+export function setRingDuration(kind, seconds) {
+  const key = kind === 'timer' ? 'timerRingDuration' : 'alarmRingDuration';
+  state[key] = normalizeDuration(seconds);
+}
+
 export function addHistory(seconds) {
   state.history.unshift({ sec: seconds, endAt: Date.now() });
   state.history = state.history.slice(0, 5);
+}
+
+export function removeHistory(index) {
+  if (index < 0 || index >= state.history.length) return false;
+  state.history.splice(index, 1);
+  return true;
 }
 
 export function markNotificationAsked() {
@@ -108,7 +127,9 @@ export function markNotificationAsked() {
 }
 
 export function getSelectedAlarmSound() {
-  return PICKABLE_SOUNDS.includes(state.sound) ? state.sound : 'bell';
+  return PICKABLE_SOUNDS.includes(state.sound) || isUploadedSound(state.sound)
+    ? state.sound
+    : 'bell';
 }
 
 export function nextEnabledAlarm(fromMs = Date.now()) {
@@ -131,7 +152,11 @@ function normalizeAlarm(alarm) {
     time: alarm.time,
     label: alarm.label || '',
     days: Array.isArray(alarm.days) ? alarm.days : [],
-    sound: SOUNDS[alarm.sound] ? alarm.sound : 'bell',
+    sound: SOUNDS[alarm.sound] || isUploadedSound(alarm.sound) ? alarm.sound : 'bell',
     on: Boolean(alarm.on)
   };
+}
+
+function normalizeDuration(seconds) {
+  return Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 120;
 }

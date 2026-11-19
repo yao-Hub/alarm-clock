@@ -25,14 +25,15 @@ export function createAlarmList({ onChange, onEdit }) {
       const alarm = toggleAlarm(id);
       if (!alarm) return;
       saveState();
-      onChange();
+      onChange({ type: 'toggle', alarm });
       showToast(`${alarm.time} ${alarm.on ? '已启用' : '已关闭'}`);
     }
     if (action === 'edit') onEdit(id);
     if (action === 'del') {
-      removeAlarm(id);
+      const alarm = removeAlarm(id);
+      if (!alarm) return;
       saveState();
-      onChange();
+      onChange({ type: 'delete', alarm });
       showToast('已删除该闹钟');
     }
   });
@@ -52,7 +53,7 @@ export function createAlarmList({ onChange, onEdit }) {
     });
 
     saveState();
-    onChange();
+    onChange({ type: 'create', alarm });
     showToast(`已添加闹钟 · ${alarm.time} ${alarm.label}`);
   });
 

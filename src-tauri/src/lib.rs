@@ -3,6 +3,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Manager, WindowEvent,
 };
+use tauri_plugin_notification::NotificationExt;
 
 fn show_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
@@ -20,6 +21,13 @@ pub fn run() {
             show_main_window(app);
         }))
         .setup(|app| {
+            let notification_app = app.handle().clone();
+            app.notification().on_action(move |event| {
+                if event.action_id() == "tap" {
+                    show_main_window(&notification_app);
+                }
+            })?;
+
             let show = MenuItem::with_id(app, "show", "显示主界面", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &quit])?;

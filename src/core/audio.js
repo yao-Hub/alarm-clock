@@ -1,12 +1,14 @@
 let audioContext = null;
 let volume = 0.65;
-let customAudioUrl = null;
-let customAudioName = '';
+let uploadedAudios = [];
 let previewAudio = null;
+let previewNodes = [];
+let previewCollector = null;
+let previewEndTimer = null;
 
 export const CUSTOM_SOUND = {
-  name: '本机音频',
-  hint: '从电脑里选一段 mp3 / wav 作为铃声'
+  name: '上传音频',
+  hint: '上传 mp3 / wav 作为铃声'
 };
 
 export const SOUNDS = {
@@ -135,6 +137,7 @@ export function tone(frequency, duration, level, options = {}) {
 
   oscillator.connect(gain);
   gain.connect(context.destination);
+  previewCollector?.push({ oscillator, gain });
   oscillator.start(startAt);
   oscillator.stop(startAt + duration + 0.03);
 }
@@ -143,9 +146,10 @@ export function playSound(soundId) {
   SOUNDS[soundId]?.play();
 }
 
-export function playCustomAudio({ loop = false } = {}) {
-  if (!customAudioUrl) return null;
-  const audio = new Audio(customAudioUrl);
+export function playCustomAudio(soundId, { loop = false } = {}) {
+  const track = getCustomAudio(soundId);
+  if (!track.url) return null;
+  const audio = new Audio(track.url);
   audio.loop = loop;
   audio.volume = volume;
   const playback = audio.play();
@@ -153,46 +157,88 @@ export function playCustomAudio({ loop = false } = {}) {
   return audio;
 }
 
-export function previewSound(soundId) {
+export function previewSound(soundId, onEnded) {
+  stopPreviewSound();
   ensureAudioContext();
 
-  if (soundId === 'custom') {
-    if (!customAudioUrl) return false;
-    stopPreview();
-    previewAudio = playCustomAudio();
-    return Boolean(previewAudio);
+  if (isUploadedSound(soundId)) {
+    previewAudio = playCustomAudio(soundId);
+    if (!previewAudio) return false;
+    previewAudio.addEventListener('ended', () => {
+      stopPreviewSound();
+      onEnded?.();
+    }, { once: true });
+    return true;
   }
 
   if (!SOUNDS[soundId]) return false;
+  previewNodes = [];
+  previewCollector = previewNodes;
   SOUNDS[soundId].play();
+  previewCollector = null;
+  previewEndTimer = window.setTimeout(() => {
+    stopPreviewSound();
+    onEnded?.();
+  }, SOUNDS[soundId].period * 1000);
   return true;
 }
 
-function stopPreview() {
-  if (!previewAudio) return;
-  try {
-    previewAudio.pause();
-  } catch {
-    // The browser may already have released the media element.
+export function stopPreviewSound() {
+  if (previewAudio) {
+    try {
+      previewAudio.pause();
+    } catch {
+      // The browser may already have released the media element.
+    }
+    previewAudio = null;
   }
-  previewAudio = null;
+
+  previewNodes.forEach(({ oscillator, gain }) => {
+    try {
+      oscillator.stop();
+    } catch {
+      // Oscillators that already finished cannot be stopped again.
+    }
+    gain.disconnect();
+  });
+  previewNodes = [];
+  previewCollector = null;
+  clearTimeout(previewEndTimer);
+  previewEndTimer = null;
 }
 
-export function setCustomAudio(file) {
-  if (customAudioUrl) URL.revokeObjectURL(customAudioUrl);
-  customAudioUrl = URL.createObjectURL(file);
-  customAudioName = file.name.replace(/\.[^.]+$/, '');
-  return customAudioName;
-}
-
-export function getCustomAudio() {
-  return {
-    url: customAudioUrl,
-    name: customAudioName
+export function addCustomAudio(file) {
+  const id = `upload:${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const track = {
+    id,
+    name: file.name.replace(/\.[^.]+$/, ''),
+    url: URL.createObjectURL(file)
   };
+  uploadedAudios.push(track);
+  return track;
+}
+
+export function getUploadedAudios() {
+  return [...uploadedAudios];
+}
+
+export function removeCustomAudio(soundId) {
+  const track = uploadedAudios.find((item) => item.id === soundId);
+  if (!track) return false;
+  URL.revokeObjectURL(track.url);
+  uploadedAudios = uploadedAudios.filter((item) => item.id !== soundId);
+  return true;
+}
+
+export function getCustomAudio(soundId) {
+  return uploadedAudios.find((track) => track.id === soundId) || { url: '', name: '' };
+}
+
+export function isUploadedSound(soundId) {
+  return typeof soundId === 'string' && soundId.startsWith('upload:');
 }
 
 export function getSoundName(soundId) {
-  if (soundId === 'custom') return customAudioName || CUSTOM_SOUND.name;
+  if (isUploadedSound(soundId)) return getCustomAudio(soundId).name || CUSTOM_SOUND.name;
   return SOUNDS[soundId]?.name || SOUNDS.bell.name;
 }

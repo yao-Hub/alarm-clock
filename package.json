@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "npm run dev:web",
     "dev:web": "vite --host 127.0.0.1",
     "build:web": "vite build",
     "desktop:dev": "tauri dev",

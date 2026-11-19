@@ -1,13 +1,13 @@
 import { ensureAudioContext } from '../core/audio.js';
-import { addHistory, saveState, state } from '../core/store.js';
+import { addHistory, removeHistory, saveState, state } from '../core/store.js';
 import { qs, qsa } from '../utils/dom.js';
-import { formatClockTime, formatCountdown, pad } from '../utils/time.js';
+import { formatClockTime, formatCountdown, formatTimerLength, pad } from '../utils/time.js';
 import { renderTimerLabels, rotateElement } from './dial.js';
 import { showToast } from './toast.js';
 
 const ARC_LENGTH = 2 * Math.PI * 150;
 const DEFAULT_SECONDS = 25 * 60;
-const DEFAULT_HINT = '结束时将用底部选定的提示音提醒，最长响铃 2 分钟。';
+const DEFAULT_HINT = '结束时将使用设置中的默认提示音提醒。';
 
 export function createCountdownView({ ring }) {
   const countdown = {
@@ -65,12 +65,19 @@ export function createCountdownView({ ring }) {
       return;
     }
 
-    list.innerHTML = state.history.map((entry) => {
+    list.innerHTML = state.history.map((entry, index) => {
       const endedAt = new Date(entry.endAt);
       return (
-        `<li><strong>${formatCountdown(entry.sec)}</strong>` +
-        `<span>${endedAt.getMonth() + 1}月${endedAt.getDate()}日 ` +
-        `${pad(endedAt.getHours())}:${pad(endedAt.getMinutes())} 结束</span></li>`
+        `<li class="hist-item"><div class="hist-row" data-history-index="${index}">` +
+          '<div class="hist-content" role="button" tabindex="0" ' +
+          `aria-label="载入 ${formatCountdown(entry.sec)} 的计时">` +
+          `<strong>${formatCountdown(entry.sec)}</strong>` +
+          `<span class="hist-ended">${endedAt.getMonth() + 1}月${endedAt.getDate()}日 ` +
+            `${pad(endedAt.getHours())}:${pad(endedAt.getMinutes())} 结束</span>` +
+          '</div>' +
+          '<div class="hist-delete" role="button" tabindex="0" ' +
+            `aria-label="删除 ${formatCountdown(entry.sec)} 的计时记录">删除</div>` +
+        '</div></li>'
       );
     }).join('');
   }
@@ -94,10 +101,12 @@ export function createCountdownView({ ring }) {
     addHistory(countdown.total);
     saveState();
     renderHistory();
-    ring.start(state.sound === 'custom' ? 'custom' : state.sound, {
-      timeText: '00:00',
-      label: '倒计时结束',
-      sound: state.sound === 'custom' ? 'bell' : state.sound
+    ring.start(state.sound, {
+      timeText: formatTimerLength(countdown.total),
+      label: '计时完成',
+      sound: state.sound,
+      kind: 'timer',
+      onRepeat: restart
     });
   }
 
@@ -159,6 +168,13 @@ export function createCountdownView({ ring }) {
     writeInputs(seconds);
     render();
     setStatus('待命 · 点击开始');
+    qs('#cdHint').textContent = DEFAULT_HINT;
+  }
+
+  function restart() {
+    const seconds = countdown.total;
+    applyPreset(seconds);
+    start();
   }
 
   function syncFromInputs() {
@@ -180,11 +196,41 @@ export function createCountdownView({ ring }) {
     ['#inH', '#inM', '#inS'].forEach((selector) => {
       qs(selector).addEventListener('change', syncFromInputs);
     });
+    function handleHistoryAction(target) {
+      const row = target.closest('.hist-row');
+      if (!row) return;
+
+      if (target.closest('.hist-delete')) {
+        if (removeHistory(Number(row.dataset.historyIndex))) {
+          saveState();
+          renderHistory();
+          showToast('已删除计时记录');
+        }
+        return;
+      }
+
+      if (!target.closest('.hist-content')) return;
+      const entry = state.history[Number(row.dataset.historyIndex)];
+      if (!entry) return;
+      applyPreset(entry.sec);
+      showToast(`已载入 ${formatCountdown(entry.sec)}，点击开始再次计时`);
+    }
+
+    const history = qs('#cdHistory');
+    history.addEventListener('click', (event) => {
+      handleHistoryAction(event.target);
+    });
+    history.addEventListener('keydown', (event) => {
+      if (!['Enter', ' '].includes(event.key)) return;
+      if (!event.target.closest('[role="button"]')) return;
+      event.preventDefault();
+      handleHistoryAction(event.target);
+    });
   }
 
   function setSoundName(name) {
     if (!countdown.running) {
-      qs('#cdHint').textContent = `结束时将用「${name}」提醒，最长 2 分钟。`;
+      qs('#cdHint').textContent = `结束时将用「${name}」提醒。`;
     }
   }
 
