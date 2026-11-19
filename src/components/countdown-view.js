@@ -59,9 +59,11 @@ export function createCountdownView({ ring }) {
   }
 
   function renderHistory() {
+    const section = qs('#cdHistorySection');
     const list = qs('#cdHistory');
+    section.hidden = !state.history.length;
     if (!state.history.length) {
-      list.innerHTML = '<li class="hist-empty">还没有完成的计时</li>';
+      list.innerHTML = '';
       return;
     }
 
