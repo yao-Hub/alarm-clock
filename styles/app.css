@@ -8,9 +8,9 @@
   --brass-2:#e8cf9a;
   --brass-dim:rgba(200,164,92,.68);
   --paper:#efe9db;
-  --dim:rgba(239,233,219,.68);
-  --dim-2:rgba(239,233,219,.48);
-  --hint:rgba(239,233,219,.74);
+  --dim:rgba(239,233,219,.76);
+  --dim-2:rgba(239,233,219,.54);
+  --hint:rgba(239,233,219,.68);
   --clay:#c8745c;
   --num-font:"Bodoni Moda","Noto Serif SC",Georgia,"Times New Roman",serif;
   --cjk:"Noto Serif SC","Songti SC","SimSun",serif;
@@ -24,10 +24,13 @@ body{
     var(--ink);
   color:var(--paper);
   font-family:var(--cjk);
-  font-weight:300;
+  font-size:14px;
+  font-weight:400;
+  line-height:1.5;
   -webkit-font-smoothing:antialiased;
   letter-spacing:.01em;
 }
+button,input,select,textarea{font-family:inherit}
 body::before{
   content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
   background-image:repeating-linear-gradient(90deg,rgba(200,164,92,.045) 0 1px,transparent 1px 7px);
@@ -40,7 +43,7 @@ body::before{
 .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:32px 2px 22px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:12px}
 .brand-mark{width:30px;height:30px;flex:none}
-.brand-name{font-family:var(--cjk);font-size:21px;font-weight:400;letter-spacing:.22em;line-height:1}
+.brand-name{font-family:var(--cjk);font-size:21px;font-weight:500;letter-spacing:.22em;line-height:1}
 .brand-sub{font-family:var(--num-font);font-size:14px;letter-spacing:.34em;color:var(--brass-dim);text-transform:uppercase;padding-bottom:2px;border-left:1px solid var(--line);padding-left:12px}
 .tabs{display:flex;gap:6px}
 .tab{
@@ -92,7 +95,7 @@ body::before{
 /* ---------- 读数 ---------- */
 .readout{margin-top:8px;text-align:center}
 .readout-time{font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:clamp(42px,7vw,72px);line-height:1.02;letter-spacing:.02em;font-weight:500;display:flex;align-items:baseline;justify-content:center;gap:2px}
-.readout-time .sec{font-size:.42em;color:var(--brass);letter-spacing:.06em;margin-left:8px;font-weight:400}
+.readout-time .sec{font-size:clamp(18px,2.2vw,30px);color:var(--brass);letter-spacing:.06em;margin-left:8px;font-weight:400}
 .readout-meta{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px;color:var(--dim);font-size:14px;letter-spacing:.16em}
 .readout-meta .dot{width:3px;height:3px;border-radius:50%;background:var(--brass-dim)}
 .next-line{margin-top:18px;text-align:center;font-size:14px;color:var(--dim);letter-spacing:.1em;line-height:1.9}
@@ -109,7 +112,7 @@ body::before{
 }
 .pending-reminder-copy{display:grid;gap:5px;min-width:0}
 .pending-reminder-copy strong{
-  font-size:15px;font-weight:400;letter-spacing:.12em;color:var(--paper);
+  font-size:15px;font-weight:500;letter-spacing:.12em;color:var(--paper);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .pending-reminder-meta{font-size:14px;letter-spacing:.07em;color:var(--dim)}
@@ -126,7 +129,7 @@ body::before{
 /* ---------- 侧栏 ---------- */
 .panel{min-width:0;background:linear-gradient(180deg,rgba(200,164,92,.035),rgba(200,164,92,0) 42%);border-top:1px solid var(--line);padding-top:22px}
 .panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px}
-.panel-title{font-size:15px;letter-spacing:.2em;color:var(--paper);margin:0;font-weight:400}
+.panel-title{font-size:16px;letter-spacing:.2em;color:var(--paper);margin:0;font-weight:500}
 .btn{
   appearance:none;cursor:pointer;font-family:var(--cjk);font-size:14px;letter-spacing:.1em;
   border:1px solid var(--line);background:transparent;color:var(--paper);
@@ -176,7 +179,7 @@ body::before{
 .tpl span{display:block;font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:20px;color:var(--paper);letter-spacing:.02em;line-height:1}
 .tpl em{display:block;margin-top:7px;font-style:normal;font-size:14px;color:var(--dim);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:600px){.tpl-row{grid-template-columns:minmax(0,1fr)}}
-.hist{list-style:none;margin:10px 0 0;padding:0}
+.hist{list-style:none;margin:10px 0 0;padding:0;font-size:14px}
 .hist-item{border-bottom:1px solid var(--line-soft)}
 .hist-row{
   display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;
@@ -197,11 +200,11 @@ body::before{
 }
 .hist-delete:hover{color:var(--clay)}
 .hist-content:focus-visible,.hist-delete:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
-.hist .hist-empty{color:var(--hint);justify-content:flex-start;border-bottom:0}
+.hist .hist-empty{color:var(--hint);font-size:14px;justify-content:flex-start;border-bottom:0}
 
 /* 倒计时控制 */
 .timer-form{margin-top:6px}
-.field-label{font-size:14px;letter-spacing:.2em;color:var(--dim);margin-bottom:10px}
+.field-label{font-size:14px;font-weight:500;letter-spacing:.2em;color:var(--dim);margin-bottom:10px}
 .time-inputs{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:6px}
 .time-input{
   width:100%;min-width:0;background:transparent;border:1px solid var(--line);border-radius:2px;
@@ -254,7 +257,7 @@ body::before{
   padding:11px 0;border-bottom:1px solid var(--line-soft);
 }
 .ring-setting-copy{display:grid;gap:4px}
-.ring-setting-copy strong{font-size:14px;font-weight:400;letter-spacing:.1em;color:var(--paper)}
+.ring-setting-copy strong{font-size:14px;font-weight:500;letter-spacing:.1em;color:var(--paper)}
 .ring-setting-copy span{font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:15px;color:var(--brass)}
 .duration-inputs{display:flex;align-items:center;gap:4px}
 .duration-inputs input{
@@ -288,10 +291,10 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--bras
 .dialog-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:22px}
 .dialog-section{margin-bottom:18px}
 .dialog-section--tight{margin-bottom:8px}
-.dialog-title{font-size:16px;letter-spacing:.2em;margin:0;font-weight:400}
+.dialog-title{font-size:18px;letter-spacing:.2em;margin:0;font-weight:500}
 .close-x{appearance:none;background:none;border:0;color:var(--dim);font-size:22px;line-height:1;cursor:pointer;padding:0 2px;font-family:var(--num-font)}
 .close-x:hover{color:var(--brass-2)}
-.dlg-label{display:block;font-size:14px;letter-spacing:.2em;color:var(--dim);margin:0 0 8px}
+.dlg-label{display:block;font-size:14px;font-weight:500;letter-spacing:.2em;color:var(--dim);margin:0 0 8px}
 .dlg-input{
   width:100%;background:transparent;border:1px solid var(--line);border-radius:2px;color:var(--paper);
   font-family:var(--cjk);font-size:15px;padding:10px 12px;letter-spacing:.04em;
@@ -393,7 +396,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--bras
 .snd:hover{border-color:var(--brass-dim);background:rgba(200,164,92,.05)}
 .snd[aria-pressed="true"]{border-color:var(--brass);background:rgba(200,164,92,.1)}
 .snd[data-previewing="true"]{box-shadow:inset 0 -2px 0 var(--brass-2)}
-.snd strong{display:block;font-size:14px;font-weight:400;letter-spacing:.06em;color:var(--paper)}
+.snd strong{display:block;font-size:14px;font-weight:500;letter-spacing:.06em;color:var(--paper)}
 .snd span{display:block;margin-top:4px;font-size:14px;color:var(--dim);letter-spacing:.04em}
 .dialog-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:26px}
 .dialog-foot .btn{padding:10px 22px}
@@ -410,7 +413,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--bras
 @keyframes pulse{0%{transform:scale(.72);opacity:.65}70%{opacity:0}100%{transform:scale(1.25);opacity:0}}
 .ring-kicker{font-size:14px;letter-spacing:.4em;color:var(--brass);margin-bottom:20px}
 .ring-time{font-family:var(--num-font);font-variant-numeric:tabular-nums;font-size:clamp(56px,13vw,92px);line-height:1;font-weight:500;letter-spacing:.03em}
-.ring-label{margin-top:14px;font-size:15px;letter-spacing:.16em;color:var(--paper);opacity:.9}
+.ring-label{margin-top:14px;font-size:16px;font-weight:500;letter-spacing:.16em;color:var(--paper);opacity:.9}
 .ring-sub{margin-top:8px;font-size:14px;letter-spacing:.14em;color:var(--dim)}
 .ring-actions{display:flex;gap:10px;justify-content:center;margin-top:36px;flex-wrap:wrap}
 .ring-actions .btn{padding:13px 26px;font-size:14px;letter-spacing:.14em}
