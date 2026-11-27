@@ -38,6 +38,17 @@ npm run desktop:build
 
 项目已提交 `package-lock.json` 和 `Cargo.lock`，不同电脑会安装相同的依赖版本。也可以直接在 GitHub Actions 中运行 `Build Windows Desktop Installer`，从构建产物下载安装包。
 
+## 发布桌面版本
+
+推送 `v*` 标签后，GitHub Actions 会自动构建 Windows 安装包并发布 GitHub Release：
+
+```powershell
+git tag v0.1.6
+git push origin v0.1.6
+```
+
+发布前需要同步更新 `package.json`、`src-tauri/Cargo.toml` 和 `src-tauri/tauri.conf.json` 中的版本号。手动运行 `Build Windows Desktop Installer` 时不会创建 Release，只会生成 Actions 构建产物。
+
 ## 项目结构
 
 | 目录 | 职责 |
