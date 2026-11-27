@@ -56,6 +56,8 @@ npm run release -- --dry-run
 
 发布脚本只允许在干净且与远端同步的 `main` 分支运行，会同步更新 `package.json`、`package-lock.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock` 和 `src-tauri/tauri.conf.json`。手动运行 `Build Windows Desktop Installer` 时不会创建 Release，只会生成 Actions 构建产物。
 
+Release 说明会根据上一个版本标签到当前标签之间的提交自动生成，并按新功能、问题修复、优化调整、文档与工程分类。
+
 ## 项目结构
 
 | 目录 | 职责 |
