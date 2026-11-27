@@ -1,6 +1,6 @@
 [package]
 name = "shike-alarm"
-version = "0.1.5"
+version = "0.1.6"
 description = "Shike alarm clock and countdown desktop app"
 authors = ["yao-Hub"]
 edition = "2021"
