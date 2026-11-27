@@ -40,14 +40,21 @@ npm run desktop:build
 
 ## 发布桌面版本
 
-推送 `v*` 标签后，GitHub Actions 会自动构建 Windows 安装包并发布 GitHub Release：
+使用一键发布脚本更新版本、提交、打标签并触发 GitHub Actions：
 
 ```powershell
-git tag v0.1.6
-git push origin v0.1.6
+npm run release
 ```
 
-发布前需要同步更新 `package.json`、`src-tauri/Cargo.toml` 和 `src-tauri/tauri.conf.json` 中的版本号。手动运行 `Build Windows Desktop Installer` 时不会创建 Release，只会生成 Actions 构建产物。
+脚本默认递增补丁版本，也支持次版本和主版本：
+
+```powershell
+npm run release -- minor
+npm run release -- major
+npm run release -- --dry-run
+```
+
+发布脚本只允许在干净且与远端同步的 `main` 分支运行，会同步更新 `package.json`、`package-lock.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock` 和 `src-tauri/tauri.conf.json`。手动运行 `Build Windows Desktop Installer` 时不会创建 Release，只会生成 Actions 构建产物。
 
 ## 项目结构
 
