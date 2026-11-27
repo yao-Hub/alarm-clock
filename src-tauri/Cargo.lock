@@ -3284,7 +3284,7 @@ dependencies = [
 
 [[package]]
 name = "shike-alarm"
-version = "0.1.7"
+version = "0.1.5"
 dependencies = [
  "tauri",
  "tauri-build",
